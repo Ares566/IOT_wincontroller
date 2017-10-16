@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script type="text/javascript" src="https://yastatic.net/jquery/2.2.0/jquery.min.js"></script>
+    <script type="text/javascript" src="https://download.yandex.ru/webspeechkit/webspeechkit-1.0.0.js"></script>
+    <script type="text/javascript" src="https://download.yandex.ru/webspeechkit/webspeechkit-settings.js"></script>
+
+    <script>
+    window.onload = function() {
+        var timer = null;
+        window.doAnalyze = function(text, data) {
+            var result = null;
+            if(!data || !data.Morph) {
+                result = 'Ошибка при анализе :(';
+            } else {
+                var words = $(data.Morph).map(function(idx, el) {
+                    if(!el || !el.Lemmas || !el.Lemmas[0].Grammems) {
+                        return [[null, ""]]
+                    }
+                    return [[el.Lemmas[0].Text, el.Lemmas[0].Grammems[0].split(' ')]]
+                });
+                result = 'Запрос проанализирован<br/>';
+                $(words).map(function(idx, el) {
+                    var word = el[0];
+                    var params = el[1];
+                    console.log(word, params);
+                    if(params.indexOf('S') >= 0) {
+                        result += 'Субьект: ' + word + '<br/>';
+                        
+                    }
+                    if(params.indexOf('V') >= 0) {
+                        result += 'Действие: ' + word + '<br/>';
+                        if(word=='открывать')
+                    		$.get( "http://192.168.1.125/WIN=OPEN" );
+                        if(word=='закрыть')
+                            $.get( "http://192.168.1.125/WIN=CLOSE" );
+                    	
+                    }
+                    
+                    
+                });
+            }
+            $(".lead").html('Вы сказали: ' + text + '<br/>' + result);                
+        }
+        var doRecognize = function(text) {
+            if(text) {
+                $(".lead").text('!Вы сказали: ' + text + '\nАнализируем…');
+                
+                $.getJSON("https://vins-markup.voicetech.yandex.net/markup/0.x/?text="+ text +"&key=").done(function(data) {
+                    doAnalyze(text, data);
+                    $("#button").attr({disabled: false}).removeClass('disabled').html('Нажмите и скажите ещё')    
+                }).fail(function(){
+                    doAnalyze(text, null)
+                    $("#button").attr({disabled: false}).removeClass('disabled').html('Нажмите и скажите ещё')    
+                });
+            } else {                
+                $("#button").attr({disabled: false}).removeClass('disabled').html('Нажмите и скажите ещё')    
+            }
+            clearInterval(timer);
+            timer = null;
+        }
+
+        var spotter = function() {
+            window.spotter = new ya.speechkit.Spotter({
+                doneCallback: function (text) {
+                    console.log("Spotter You've said: " + text);
+                    recognize();
+                },
+                initCallback: function () {
+                    console.log("Spotter You may speak now");
+                },
+                errorCallback: function (err) {
+                    console.log("Spotter Something gone wrong: " + err);
+                    doRecognize();
+                },
+                model: 'freeform', // Model name for recognition process
+                lang: 'ru-RU', //Language for recognition process
+                apiKey: '',
+                phrase: 'Записывай, Завершить запись'
+            })
+            window.spotter.start();
+        }
+
+        var recognize = function() {
+            ya.speechkit.recognize({
+                doneCallback: function (text) {
+                    console.log("You've said: " + text);
+                    doRecognize(text);
+                },
+                initCallback: function () {
+                    console.log("You may speak now");
+                },
+                errorCallback: function (err) {
+                    console.log("Something gone wrong: " + err);
+                    doRecognize();
+                },
+                model: 'freeform', // Model name for recognition process
+                lang: 'ru-RU', //Language for recognition process
+                apiKey: '' // ваш ключ API
+            });
+            $("#button").attr({disabled: true}).addClass('disabled').html('Слушаем!')    
+            timer = setTimeout(function() {
+                $(".lead").text('Говорите смелее!') 
+            }, 10000);
+        }
+        $("#button").click(recognize);
+        new ya.speechkit.Equalizer('equalizer');
+        spotter();
+    };
+    </script>
+
+    <title>Narrow Jumbotron Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://v4-alpha.getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="https://v4-alpha.getbootstrap.com/examples/narrow-jumbotron/narrow-jumbotron.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header clearfix">
+        <h3 class="text-muted">Открывашка</h3>
+      </div>
+
+      <div class="jumbotron">
+        <p id="lead" class="lead">Вы пока ничего ещё не сказали</p>
+        <p><a class="btn btn-lg btn-success" id="button" href="#" role="button">Нажмите и говорите</a></p>
+      </div>
+
+        <p id="equalizer" ></p>
+<p id="textline" ></p>
+
+      <footer class="footer">
+        
+      </footer>
+
+    </div> <!-- /container -->
+
+  </body>
+</html>
