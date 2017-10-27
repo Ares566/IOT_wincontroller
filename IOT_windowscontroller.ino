@@ -1,6 +1,9 @@
 // подключаем библиотеку для работы с DHT11
 #include <dht.h>
 
+// Библиотека для работы с серво
+#include <Servo.h>
+
 // подключаем бибилиотеку для работы с NodeMCU как с сервером
 #include <ESP8266WiFi.h>
 
@@ -12,14 +15,17 @@
 #define dht_dpin D0 
 
 // доступ к сети WiFi
-const char* ssid = "RenatHome";
-const char* password = "*";
+const char* ssid = "";
+const char* password = "";
 
 // WiFi сервер работает на 80 порту 
 WiFiServer server(80);
 
 // определяем объект класса DHT для работы с датчиком
 dht DHT;
+
+// определяем переменную
+Servo stopper;
 
 void setup() {
   delay(10);
@@ -37,7 +43,8 @@ void setup() {
   digitalWrite(D7, 0);
   pinMode(D8, OUTPUT);
   digitalWrite(D8, 0);
-  
+  stopper.attach(D1);
+  stopper.write(33);
   delay(10);
 }
 
@@ -61,16 +68,20 @@ void loop() {
   // запрос может быть и пустым
   int value = LOW;
   if (request.indexOf("/WIN=OPEN") != -1)  { // запрос вида http://192.168.1.250/WIN=OPEN
+    stopper.write(0);
     openWindow(W_FAST);
     delay(2000);
     stopWMoving();
     value = HIGH;
+    stopper.write(33);
   }
   if (request.indexOf("/WIN=CLOSE") != -1)  {
+    stopper.write(0);
     closeWindow(W_FAST);
     delay(3000);
     stopWMoving();
     value = LOW;
+    stopper.write(33);
   }
  
   // Формируем ответ сервера
